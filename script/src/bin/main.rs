@@ -12,16 +12,27 @@
 
 use sp1_sdk::{utils, ProverClient, SP1Stdin};
 
-pub const FIBONACCI_ELF: &[u8] = include_bytes!("../../../elf/riscv32im-succinct-zkvm-elf");
+pub const ELF: &[u8] = include_bytes!("../../../elf/riscv32im-succinct-zkvm-elf");
 
 fn main() {
     utils::setup_logger();
+    let client = ProverClient::new();
 
     let stdin = SP1Stdin::new();
 
-    let client = ProverClient::new();
-    let (_public_values, _) = client
-        .execute(FIBONACCI_ELF, stdin)
+    let (pk, vk) = client.setup(ELF);
+
+    let proof = client
+        .prove(&pk, stdin)
         .run()
-        .expect("failed to prove");
+        .expect("failed to generate proof");
+
+    println!("Proof generated successfully!");
+
+    proof
+        .save("proof-with-io.json")
+        .expect("saving proof failed");
+
+    client.verify(&proof, &vk).expect("failed to verify proof");
+    println!("Successfully verified proof!");
 }

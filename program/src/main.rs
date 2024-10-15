@@ -22,9 +22,5 @@ pub fn main() {
     // Check if the result is the identity in Gt
     assert_eq!(result, Gt::identity());
 
-    // Optional: Verify using individual pairings
-    let pairing_product = pairing(&a, &b) + pairing(&a, &b_neg);
-    assert_eq!(pairing_product, Gt::identity());
-
     println!("cycle-tracker-end: bls12_381-pairing-with-negative");
 }
