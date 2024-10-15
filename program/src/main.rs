@@ -1,30 +1,43 @@
-//! A simple program that takes a number `n` as input, and writes the `n-1`th and `n`th fibonacci
-//! number as an output.
-
-// These two lines are necessary for the program to properly compile.
-//
-// Under the hood, we wrap your main function with some extra code so that it behaves properly
-// inside the zkVM.
 #![no_main]
 sp1_zkvm::entrypoint!(main);
 
 use alloy_sol_types::SolType;
-use fibonacci_lib::{fibonacci, PublicValuesStruct};
+use fibonacci_lib::PublicValuesStruct;
+
+use bls12_381::{
+    multi_miller_loop, pairing, G1Affine, G1Projective, G2Affine, G2Prepared, G2Projective, Gt,
+    Scalar,
+};
 
 pub fn main() {
-    // Read an input to the program.
-    //
-    // Behind the scenes, this compiles down to a custom system call which handles reading inputs
-    // from the prover.
-    let n = sp1_zkvm::io::read::<u32>();
+    let a = G1Affine::from(
+        G1Affine::generator() * Scalar::from_raw([7, 7, 7, 7]).invert().unwrap().square(),
+    );
 
-    // Compute the n'th fibonacci number using a function from the workspace lib crate.
-    let (a, b) = fibonacci(n);
+    // Generate a random point in G2
+    let b = G2Affine::from(
+        G2Affine::generator() * Scalar::from_raw([8, 8, 8, 8]).invert().unwrap().square(),
+    );
 
-    // Encode the public values of the program.
-    let bytes = PublicValuesStruct::abi_encode(&PublicValuesStruct { n, a, b });
+    // Calculate -b
+    let b_neg = -b;
 
-    // Commit to the public values of the program. The final proof will have a commitment to all the
-    // bytes that were committed to.
+    // Prepare b and -b for the Miller loop
+    let b_prepared = G2Prepared::from(b);
+    let b_neg_prepared = G2Prepared::from(b_neg);
+
+    // Calculate e(a,b) * e(a,-b) using multi_miller_loop
+    let result =
+        multi_miller_loop(&[(&a, &b_prepared), (&a, &b_neg_prepared)]).final_exponentiation();
+
+    // The result should be the identity element in Gt
+    assert_eq!(result, Gt::identity());
+
+    // Optional: Verify that e(a,b) * e(a,-b) = 1 using individual pairings
+    let pairing_product = pairing(&a, &b) + pairing(&a, &b_neg);
+    assert_eq!(pairing_product, Gt::identity());
+
+    let result_u32 = result.0.to_bytes()[0] as u32; // Convert Gt to u32
+    let bytes = PublicValuesStruct::abi_encode(&PublicValuesStruct { result: result_u32 });
     sp1_zkvm::io::commit_slice(&bytes);
 }

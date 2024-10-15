@@ -41,9 +41,6 @@ enum ProofSystem {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 struct SP1FibonacciProofFixture {
-    a: u32,
-    b: u32,
-    n: u32,
     vkey: String,
     public_values: String,
     proof: String,
@@ -87,17 +84,15 @@ fn create_proof_fixture(
 ) {
     // Deserialize the public values.
     let bytes = proof.public_values.as_slice();
-    let PublicValuesStruct { n, a, b } = PublicValuesStruct::abi_decode(bytes, false).unwrap();
+    let PublicValuesStruct { result } = PublicValuesStruct::abi_decode(bytes, false).unwrap();
 
     // Create the testing fixture so we can test things end-to-end.
-    let fixture = SP1FibonacciProofFixture {
-        a,
-        b,
-        n,
+    let sp1_fibonacci_proof_fixture = SP1FibonacciProofFixture {
         vkey: vk.bytes32().to_string(),
         public_values: format!("0x{}", hex::encode(bytes)),
         proof: format!("0x{}", hex::encode(proof.bytes())),
     };
+    let fixture = sp1_fibonacci_proof_fixture;
 
     // The verification key is used to verify that the proof corresponds to the execution of the
     // program on the given input.
