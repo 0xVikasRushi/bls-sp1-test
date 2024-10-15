@@ -4,13 +4,12 @@ use bls12_381::{
     multi_miller_loop, pairing, G1Affine, G1Projective, G2Affine, G2Prepared, G2Projective, Gt,
 };
 use group::Group;
-use rand::thread_rng;
 
 sp1_zkvm::entrypoint!(main);
 
 pub fn main() {
-    let a = G1Affine::from(G1Projective::random(&mut thread_rng()));
-    let b = G2Affine::from(G2Projective::random(&mut thread_rng()));
+    let a = G1Affine::from(G1Projective::generator());
+    let b = G2Affine::from(G2Projective::generator());
     let b_neg = -b;
 
     println!("cycle-tracker-start: bls12_381-pairing-with-negative");
